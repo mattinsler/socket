@@ -1,11 +1,11 @@
 {
   "name": "@mattinsler/socket",
   "description": "Easier sockets.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "repository": "mattinsler/socket",
   "scripts": {
-    "build": "rm -rf dist && tsc && cp package.json dist/"
+    "build": "rm -rf dist && tsc && cp {package.json,README.md} dist/"
   },
   "devDependencies": {
     "@types/debug": "4.1.5",
