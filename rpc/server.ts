@@ -20,6 +20,8 @@ import { Definition, ServerDefinition } from './definition';
 import { ServerRequestStream, createServerRequestStream } from './server-request-stream';
 import { ServerResponseStream, createServerResponseStream } from './server-response-stream';
 
+const debug = require('debug')('socket:rpc');
+
 type MethodType = 'bidi' | 'client-stream' | 'server-stream' | 'unary';
 
 function methodType({ reqStream, resStream }: { reqStream: boolean; resStream: boolean }): MethodType {
@@ -84,6 +86,7 @@ export function createRpcServer<T extends Definition>(
 
     socket.on('message', async (message) => {
       const type = message[0];
+      debug('message', type);
 
       if (type === MESSAGE_TYPE.UNARY_REQUEST) {
         const parsed = serdes.deserialize(message.slice(1)) as UnaryRequest;
@@ -117,7 +120,7 @@ export function createRpcServer<T extends Definition>(
 
           socket.send(Buffer.concat([Buffer.from([MESSAGE_TYPE.UNARY_RESPONSE]), serdes.serialize(response)]));
         } else {
-          console.log(`No handler for method "${parsed.method}"`);
+          debug(`No handler for method "${parsed.method}"`);
         }
       } else if (type === MESSAGE_TYPE.STREAM_REQUEST) {
         const parsed = serdes.deserialize(message.slice(1)) as StreamMessage;
@@ -143,6 +146,8 @@ export function createRpcServer<T extends Definition>(
             bidiStreams[parsed.stream].req.emit('error', deserializeError(parsed.error));
           }
         }
+      } else {
+        debug(`Unknown type: ${type}`);
       }
     });
   };

@@ -53,23 +53,25 @@ export const InitialMessage = {
     return Buffer.concat([PREAMBLE, initialMessage, ...messages]);
   },
 
-  read(initialMessage: Buffer): InitialMessageOptions {
-    if (initialMessage.slice(0, PREAMBLE.length).compare(PREAMBLE) !== 0) {
-      return {};
+  read(buffer: Buffer): [InitialMessageOptions, Buffer] {
+    if (buffer.slice(0, PREAMBLE.length).compare(PREAMBLE) !== 0) {
+      return [{}, buffer];
     }
 
-    const numMessages = initialMessage.readUInt8(PREAMBLE.length);
+    const numMessages = buffer.readUInt8(PREAMBLE.length);
     const messageLengths = new Array(numMessages)
       .fill(0)
-      .map((_, idx) => initialMessage.readUInt16BE(PREAMBLE.length + 1 + 2 * idx));
+      .map((_, idx) => buffer.readUInt16BE(PREAMBLE.length + 1 + 2 * idx));
 
     let start = PREAMBLE.length + 1 + 2 * numMessages;
-    return initialMessageOptionsFromMessages(
+    const options = initialMessageOptionsFromMessages(
       messageLengths.map((len) => {
-        const msg = initialMessage.slice(start, start + len);
+        const msg = buffer.slice(start, start + len);
         start += len;
         return msg;
       })
     );
+
+    return [options, buffer.slice(start)];
   },
 };

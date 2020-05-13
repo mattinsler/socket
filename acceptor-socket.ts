@@ -28,13 +28,12 @@ export class AcceptorSocket extends EventEmitter implements Socket {
     debug('message', buffer);
 
     if (!this._initialMessage) {
-      this._initialMessage = InitialMessage.read(buffer);
-      if (Object.keys(this._initialMessage).length) {
-        return;
-      }
+      [this._initialMessage, buffer] = InitialMessage.read(buffer);
     }
 
-    this.emit('message', buffer);
+    if (buffer.byteLength) {
+      this.emit('message', buffer);
+    }
   };
 
   get connect(): Promise<Socket> {

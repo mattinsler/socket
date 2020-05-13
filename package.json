@@ -1,7 +1,7 @@
 {
   "name": "@mattinsler/socket",
   "description": "Easier sockets.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "repository": "mattinsler/socket",
   "scripts": {

@@ -39,12 +39,14 @@ export class ConnectorSocket extends EventEmitter implements Socket {
       this.once('connected', () => resolve(this));
     });
 
+    debug('connect', options);
     this._backoff.trigger();
   }
 
   private _connect = () => {
     this._connected = false;
     this._connecting = true;
+    debug('connecting');
     this.emit('connecting');
 
     // start connecting
@@ -64,6 +66,7 @@ export class ConnectorSocket extends EventEmitter implements Socket {
 
       this._connected = true;
       this._connecting = false;
+      debug('connected');
       this.emit('connected');
 
       // handle initial messages...
@@ -85,6 +88,7 @@ export class ConnectorSocket extends EventEmitter implements Socket {
       if (this._shouldReconnect) {
         this._backoff.trigger();
       } else {
+        debug('disconnected');
         this.emit('disconnected');
       }
     });
@@ -152,6 +156,7 @@ export class ConnectorSocket extends EventEmitter implements Socket {
       const { message, resolve } = this._queue[0];
       try {
         await this._connection.send(message);
+        debug('message flushed', message);
         this._queue.shift();
         resolve();
       } catch (err) {
