@@ -32,7 +32,7 @@ export function createRpcClient<T extends Definition>(
   } = {};
   const unaries: {
     [id: string]: {
-      reject: (err: RpcError<string>) => unknown;
+      reject: (err: RpcError) => unknown;
       resolve: (value: any) => unknown;
     };
   } = {};

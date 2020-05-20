@@ -52,6 +52,9 @@ export function createRpcServer<T extends Definition>(
   const unaryHandlers: {
     [method: string]: Function;
   } = {};
+  const bidiHandlers: {
+    [method: string]: Function;
+  } = {};
   const bidiStreams: {
     [stream: string]: {
       req: ServerRequestStream<any>;
@@ -68,14 +71,7 @@ export function createRpcServer<T extends Definition>(
         const key = [protocolName, methodName].join('|');
 
         if (defn.reqStream && defn.resStream) {
-          // bidiHandlers[key] = () => {
-          //   req: createServerRequestStream(),
-          //   res: createServerResponseStream({
-          //     serdes,
-          //     socket,
-          //     stream:
-          //   })
-          // };
+          bidiHandlers[key] = handler;
         } else if (defn.reqStream && !defn.resStream) {
         } else if (!defn.reqStream && defn.resStream) {
         } else if (!defn.reqStream && !defn.resStream) {
@@ -90,6 +86,7 @@ export function createRpcServer<T extends Definition>(
 
       if (type === MESSAGE_TYPE.UNARY_REQUEST) {
         const parsed = serdes.deserialize(message.slice(1)) as UnaryRequest;
+        debug('UNARY_REQUEST', parsed);
 
         const handler = unaryHandlers[parsed.method];
         if (handler) {
@@ -124,17 +121,18 @@ export function createRpcServer<T extends Definition>(
         }
       } else if (type === MESSAGE_TYPE.STREAM_REQUEST) {
         const parsed = serdes.deserialize(message.slice(1)) as StreamMessage;
+        debug('STREAM_REQUEST', parsed);
 
         if (isStreamMessageInitialData(parsed)) {
           if (methodTypes[parsed.method] === 'bidi') {
-            bidiStreams[parsed.stream] = {
-              req: createServerRequestStream(),
-              res: createServerResponseStream({
-                serdes,
-                socket,
-                stream: parsed.stream,
-              }),
-            };
+            const req = createServerRequestStream();
+            const res = createServerResponseStream({
+              serdes,
+              socket,
+              stream: parsed.stream,
+            });
+            bidiStreams[parsed.stream] = { req, res };
+            bidiHandlers[parsed.method](req, res);
             bidiStreams[parsed.stream].req.emit('message', parsed.data);
           }
         } else if (isStreamMessageData(parsed)) {

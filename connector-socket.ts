@@ -1,9 +1,10 @@
 import { v4 as uuid } from 'uuid';
 import { EventEmitter } from 'events';
 
+import { Message } from './message';
 import { Backoff, fibonacci } from './backoff';
 import { InitialMessage } from './initial-message';
-import { Connection, Connector, Message, Socket, InitialMessageOptions } from './types';
+import { Connection, Connector, Socket, InitialMessageOptions } from './types';
 
 const debug = require('debug')('socket');
 
@@ -22,6 +23,8 @@ export class ConnectorSocket extends EventEmitter implements Socket {
 
   private _unref = false;
   private _shouldReconnect = true;
+
+  private _buffer: Buffer = Buffer.alloc(0);
 
   readonly id = uuid();
   readonly initialMessage: InitialMessageOptions;
@@ -95,8 +98,19 @@ export class ConnectorSocket extends EventEmitter implements Socket {
   };
 
   private _onMessage = (buffer: Buffer) => {
-    debug('message', buffer);
-    this.emit('message', buffer);
+    this._buffer = Buffer.concat([this._buffer, buffer]);
+
+    while (true) {
+      const [message, remainder] = Message.read(this._buffer);
+      if (message === null) {
+        break;
+      }
+
+      debug('message', message.byteLength, message);
+      this.emit('message', message);
+
+      this._buffer = remainder;
+    }
   };
 
   get connect(): Promise<Socket> {
@@ -145,18 +159,18 @@ export class ConnectorSocket extends EventEmitter implements Socket {
   }
 
   private _queue: {
-    message: Message;
     reject: (err: Error) => unknown;
     resolve: () => unknown;
+    value: Buffer;
   }[] = [];
 
   private _processQueue = async () => {
     // if !this._shouldReconnect then reject sends...
     while (this._connection && this._queue.length) {
-      const { message, resolve } = this._queue[0];
+      const { resolve, value } = this._queue[0];
       try {
-        await this._connection.send(message);
-        debug('message flushed', message);
+        await this._connection.send(Message.create(value));
+        debug('message flushed', value.byteLength, value);
         this._queue.shift();
         resolve();
       } catch (err) {
@@ -166,11 +180,11 @@ export class ConnectorSocket extends EventEmitter implements Socket {
     }
   };
 
-  send(message: Message) {
-    debug('send', message);
+  send(value: Buffer) {
+    debug('send', value.byteLength, value);
 
     return new Promise<void>((resolve, reject) => {
-      this._queue.push({ message, reject, resolve });
+      this._queue.push({ reject, resolve, value });
       this._processQueue();
     });
   }

@@ -1,7 +1,5 @@
 import { EventEmitter } from 'events';
 
-export type Message = Buffer;
-
 export interface Acceptor {
   listen(onConnection: (connection: Connection) => void): Promise<void>;
   shutdown(): Promise<void>;
@@ -73,7 +71,7 @@ export interface InitialMessageOptions {
   authorization?: string;
 }
 
-type SocketEvents = Event0<'connecting'> & Event0<'connected'> & Event0<'disconnected'> & Event1<'message', Message>;
+type SocketEvents = Event0<'connecting'> & Event0<'connected'> & Event0<'disconnected'> & Event1<'message', Buffer>;
 
 export interface Socket extends SocketEvents, EventEmitterMethods {
   readonly id: string;
@@ -89,5 +87,5 @@ export interface Socket extends SocketEvents, EventEmitterMethods {
   unref(): Socket;
 
   disconnect(): Promise<void>;
-  send(message: Message): Promise<void>;
+  send(value: Buffer): Promise<void>;
 }

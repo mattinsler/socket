@@ -13,14 +13,16 @@ export function tcpAcceptor(options: Options): Acceptor {
         const server = net.createServer((socket) => {
           onConnection(new TcpConnection(socket));
         });
-        server.on('error', (err) => reject(err));
-        server.on('listening', () => resolve());
+        server.once('error', (err) => reject(err));
+        server.once('listening', () => resolve());
 
         if (isIPOptions(options)) {
           server.listen(options.port, options.host);
         } else {
           server.listen(options.path);
         }
+
+        servers.push(server);
       });
     },
 

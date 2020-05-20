@@ -13,7 +13,8 @@ import {
 
 export interface ClientRequestStream<Message extends object> {
   end(): Promise<void>;
-  send(message: Message): Promise<void>;
+  error(err: RpcError): Promise<void>;
+  send(message: Message | RpcError): Promise<void>;
 }
 
 export function createClientRequestStream<Message extends object>({
@@ -33,13 +34,26 @@ export function createClientRequestStream<Message extends object>({
     end() {
       return socket.disconnect();
     },
-    send(data: Message | RpcError<string>) {
+    error(err: RpcError) {
+      if (firstMessage) {
+        throw new Error(`Cannot have first message of a stream be an error`);
+      }
+
+      const message = {
+        id: uuid(),
+        stream,
+        error: {
+          code: err.code,
+          message: err.message,
+        },
+      } as StreamMessageError;
+
+      return socket.send(Buffer.concat([Buffer.from([MESSAGE_TYPE.STREAM_REQUEST]), serdes.serialize(message)]));
+    },
+    send(data: Message) {
       let message: StreamMessage;
 
       if (firstMessage) {
-        if (data instanceof RpcError) {
-          throw new Error(`Cannot have first message of a stream be an error`);
-        }
         firstMessage = false;
         message = {
           id: uuid(),
@@ -47,15 +61,6 @@ export function createClientRequestStream<Message extends object>({
           method,
           data,
         } as StreamMessageInitialData;
-      } else if (data instanceof RpcError) {
-        message = {
-          id: uuid(),
-          stream,
-          error: {
-            code: data.code,
-            message: data.message,
-          },
-        } as StreamMessageError;
       } else {
         message = {
           id: uuid(),

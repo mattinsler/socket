@@ -1,3 +1,5 @@
+import { SerializedRpcError } from './errors';
+
 export const MESSAGE_TYPE = {
   UNARY_REQUEST: 1,
   UNARY_RESPONSE: 2,
@@ -14,10 +16,7 @@ export interface UnaryRequest {
 export interface UnaryResponseError {
   id: string;
   replyTo: string;
-  error: {
-    code: string;
-    message: string;
-  };
+  error: SerializedRpcError;
 }
 export interface UnaryResponseSuccess {
   id: string;
@@ -36,10 +35,7 @@ export function isUnaryResponseSuccess(value: UnaryResponse): value is UnaryResp
 export interface StreamMessageError {
   id: string;
   stream: string;
-  error: {
-    code: string;
-    message: string;
-  };
+  error: SerializedRpcError;
 }
 export interface StreamMessageData {
   id: string;

@@ -18,14 +18,16 @@ export function tlsAcceptor(options: Options): Acceptor {
             onConnection(new TlsConnection(socket));
           }
         );
-        server.on('error', (err) => reject(err));
-        server.on('listening', () => resolve());
+        server.once('error', (err) => reject(err));
+        server.once('listening', () => resolve());
 
         if (isIPOptions(options)) {
           server.listen(options.port, options.host);
         } else {
           server.listen(options.path);
         }
+
+        servers.push(server);
       });
     },
 
